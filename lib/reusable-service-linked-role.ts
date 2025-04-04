@@ -28,13 +28,47 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
       resourceName: `aws-service-role/${props.awsServiceName}/${this.roleName}`,
     });
 
-    this.isNewResource = !this.exists(this, this.roleName, props.withoutCache);
+    this.isNewResource = this.isCreatedInStack() || !this.exists(this, this.roleName, props.withoutCache);
     if (this.isNewResource) {
       new CfnServiceLinkedRole(this, 'Resource', {
         awsServiceName: props.awsServiceName,
         customSuffix: props.customSuffix,
       });
     }
+  }
+
+  private isCreatedInStack(): boolean {
+    const response: { [key: string]: any }[] = cdk.ContextProvider.getValue(this, {
+      provider: ContextProvider.CC_API_PROVIDER,
+      props: {
+        typeName: 'AWS::CloudFormation::Stack',
+        exactIdentifier: cdk.Stack.of(this).stackName,
+        propertiesToReturn: ['TemplateBody'],
+      } as CcApiContextQuery,
+      dummyValue: [
+        {
+          TemplateBody: {},
+        },
+      ],
+      mustExist: false,
+    }).value;
+
+    // getValue returns a list of result objects. We are expecting 1 result or Error.
+    const lookupBody = response[0].TemplateBody;
+
+    if (lookupBody && lookupBody.Resources) {
+      for (const resourceId in lookupBody.Resources) {
+        const resource = lookupBody.Resources[resourceId];
+        if (resource.Type === 'AWS::IAM::ServiceLinkedRole') {
+          const path = resource.Metadata?.['aws:cdk:path'];
+          if (path && path.includes(this.node.path)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   private exists(scope: Construct, roleName: string, withoutCache?: boolean): boolean {
