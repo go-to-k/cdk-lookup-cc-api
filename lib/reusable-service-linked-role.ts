@@ -18,9 +18,7 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
   constructor(scope: Construct, id: string, props: ServiceLinkedRoleProps) {
     super(scope, id);
 
-    this.roleName = props.customSuffix
-      ? `${props.roleNamePrefix}_${props.customSuffix}`
-      : props.roleNamePrefix;
+    this.roleName = props.customSuffix ? `${props.roleNamePrefix}_${props.customSuffix}` : props.roleNamePrefix;
 
     // arn:aws:iam::123456789012:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling_for-lookup
     this.roleArn = cdk.Stack.of(this).formatArn({
@@ -30,7 +28,7 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
       resourceName: `aws-service-role/${props.awsServiceName}/${this.roleName}`,
     });
 
-    this.isNewResource = !this.exists(this, this.roleName);
+    this.isNewResource = !this.exists(this, this.roleName, props.withoutCache);
     if (this.isNewResource) {
       new CfnServiceLinkedRole(this, 'Resource', {
         awsServiceName: props.awsServiceName,
