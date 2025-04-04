@@ -23,24 +23,9 @@ export class CdkLookupCcApiStack extends cdk.Stack {
       customSuffix: 'for-lookup',
     });
 
-    new cdk.CfnOutput(this, 'ExistingRoleArn', {
-      value: existingRole.roleArn,
-    });
-    new cdk.CfnOutput(this, 'ExistingRoleWithoutCacheArn', {
-      value: existingRoleWithoutCache.roleArn,
-    });
-    new cdk.CfnOutput(this, 'NewRoleArn', {
-      value: newRole.roleArn,
-    });
-
-    new cdk.CfnOutput(this, 'ExistingRoleIsNewResource', {
-      value: existingRole.isNewResource.toString(),
-    });
-    new cdk.CfnOutput(this, 'ExistingRoleWithoutCacheIsNewResource', {
-      value: existingRoleWithoutCache.isNewResource.toString(),
-    });
-    new cdk.CfnOutput(this, 'NewRoleIsNewResource', {
-      value: newRole.isNewResource.toString(),
-    });
+    // You can use these properties.
+    existingRole.roleArn;
+    existingRoleWithoutCache.roleName;
+    newRole.isNewResource;
   }
 }
