@@ -6,18 +6,32 @@ export class CdkLookupCcApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const roleName = 'AWSServiceRoleForAutoScaling';
+    const roleNamePrefix = 'AWSServiceRoleForAutoScaling';
     const awsServiceName = 'autoscaling.amazonaws.com';
 
-    new ReusableServiceLinkedRole(this, 'ExistingRole', {
-      roleName,
+    const existingRole = new ReusableServiceLinkedRole(this, 'ExistingRole', {
+      roleNamePrefix,
       awsServiceName,
     });
 
-    new ReusableServiceLinkedRole(this, 'NewRole', {
-      roleName,
+    const newRole = new ReusableServiceLinkedRole(this, 'NewRole', {
+      roleNamePrefix,
       awsServiceName,
       customSuffix: 'for-lookup',
+    });
+
+    new cdk.CfnOutput(this, 'ExistingRoleArn', {
+      value: existingRole.roleArn,
+    });
+    new cdk.CfnOutput(this, 'NewRoleArn', {
+      value: newRole.roleArn,
+    });
+
+    new cdk.CfnOutput(this, 'ExistingRoleIsNewResource', {
+      value: existingRole.isNewResource.toString(),
+    });
+    new cdk.CfnOutput(this, 'NewRoleIsNewResource', {
+      value: newRole.isNewResource.toString(),
     });
   }
 }

@@ -4,23 +4,34 @@ import { CcApiContextQuery, ContextProvider } from 'aws-cdk-lib/cloud-assembly-s
 import { Construct } from 'constructs';
 
 export interface ServiceLinkedRoleProps {
-  roleName: string;
-  awsServiceName: string;
-  customSuffix?: string;
+  readonly roleNamePrefix: string;
+  readonly awsServiceName: string;
+  readonly customSuffix?: string;
 }
 
 export class ReusableServiceLinkedRole extends cdk.Resource {
-  public readonly resource?: CfnServiceLinkedRole;
+  public readonly roleName: string;
+  public readonly roleArn: string;
+  public readonly isNewResource: boolean;
 
   constructor(scope: Construct, id: string, props: ServiceLinkedRoleProps) {
     super(scope, id);
 
-    const lookupRoleName = props.customSuffix
-      ? `${props.roleName}_${props.customSuffix}`
-      : props.roleName;
+    this.roleName = props.customSuffix
+      ? `${props.roleNamePrefix}_${props.customSuffix}`
+      : props.roleNamePrefix;
 
-    if (!this.exists(this, lookupRoleName)) {
-      this.resource = new CfnServiceLinkedRole(this, 'Resource', {
+    // arn:aws:iam::123456789012:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling_for-lookup
+    this.roleArn = cdk.Stack.of(this).formatArn({
+      service: 'iam',
+      resource: 'role',
+      region: '',
+      resourceName: `aws-service-role/${props.awsServiceName}/${this.roleName}`,
+    });
+
+    this.isNewResource = !this.exists(this, this.roleName);
+    if (this.isNewResource) {
+      new CfnServiceLinkedRole(this, 'Resource', {
         awsServiceName: props.awsServiceName,
         customSuffix: props.customSuffix,
       });
