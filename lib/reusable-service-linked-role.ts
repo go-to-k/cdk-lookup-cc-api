@@ -38,6 +38,10 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
   }
 
   private isCreatedInStack(): boolean {
+    // NOTE:
+    // CLI 側のバグ(ResourceNotFoundException じゃなくて GeneralServiceException だからキャッチできてない)で、今はできなかった。
+    // GeneralServiceException を ignore しちゃうと他のエラーも ignore しかねないので、これを本家に導入は難しい。
+    // [Error at /CdkLookupCcApiStack/ExistingRoleWithoutCache] Encountered CC API error while getting AWS::CloudFormation::Stack resource CdkLookupCcApiStack: AWS::CloudFormation::Stack Handler returned status FAILED: Stack with id CdkLookupCcApiStack does not exist (Service: CloudFormation, Status Code: 400, Request ID: eeb70254-5808-436f-a60f-8016c6e99543) (HandlerErrorCode: GeneralServiceException, RequestToken: c863844e-8eb0-4880-8d45-cd4e2515c703)
     const response: { [key: string]: any }[] = cdk.ContextProvider.getValue(this, {
       provider: ContextProvider.CC_API_PROVIDER,
       props: {
