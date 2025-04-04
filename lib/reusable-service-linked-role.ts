@@ -7,6 +7,7 @@ export interface ServiceLinkedRoleProps {
   readonly roleNamePrefix: string;
   readonly awsServiceName: string;
   readonly customSuffix?: string;
+  readonly withoutCache?: boolean;
 }
 
 export class ReusableServiceLinkedRole extends cdk.Resource {
@@ -38,14 +39,14 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
     }
   }
 
-  private exists(scope: Construct, roleName: string): boolean {
+  private exists(scope: Construct, roleName: string, withoutCache?: boolean): boolean {
     if (cdk.Token.isUnresolved(roleName)) {
       throw new Error('arguments for lookup must be concrete (no Tokens)');
     }
 
     const dummyRoleName = 'DUMMY_ROLE';
 
-    const response: { [key: string]: any }[] = cdk.ContextProvider.getValue(scope, {
+    const options: cdk.GetContextValueOptions = {
       provider: ContextProvider.CC_API_PROVIDER,
       props: {
         typeName: 'AWS::IAM::ServiceLinkedRole',
@@ -58,11 +59,33 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
         },
       ],
       mustExist: false,
-    }).value;
+    };
+
+    if (withoutCache) {
+      this.reportMissingContextKey(scope, options);
+    }
+
+    const response: { [key: string]: any }[] = cdk.ContextProvider.getValue(scope, options).value;
 
     // getValue returns a list of result objects. We are expecting 1 result or Error.
     const lookupRoleName = response[0].RoleName;
 
     return lookupRoleName !== dummyRoleName;
+  }
+
+  private reportMissingContextKey(scope: Construct, options: cdk.GetContextValueOptions) {
+    const { key, props } = cdk.ContextProvider.getKey(scope, options);
+
+    const extendedProps: { [p: string]: any } = {
+      dummyValue: options.dummyValue,
+      ignoreErrorOnMissingContext: options.mustExist !== undefined ? !options.mustExist : undefined,
+      ...props,
+    };
+
+    cdk.Stack.of(scope).reportMissingContextKey({
+      key,
+      provider: options.provider as ContextProvider,
+      props: extendedProps as CcApiContextQuery,
+    });
   }
 }

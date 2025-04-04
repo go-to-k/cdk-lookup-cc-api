@@ -6,22 +6,28 @@ export class CdkLookupCcApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const roleNamePrefix = 'AWSServiceRoleForAutoScaling';
-    const awsServiceName = 'autoscaling.amazonaws.com';
-
     const existingRole = new ReusableServiceLinkedRole(this, 'ExistingRole', {
-      roleNamePrefix,
-      awsServiceName,
+      roleNamePrefix: 'AWSServiceRoleForAutoScaling',
+      awsServiceName: 'autoscaling.amazonaws.com',
+    });
+
+    const existingRoleWithoutCache = new ReusableServiceLinkedRole(this, 'ExistingRoleWithoutCache', {
+      roleNamePrefix: 'AWSServiceRoleForElasticLoadBalancing',
+      awsServiceName: 'elasticloadbalancing.amazonaws.com',
+      withoutCache: true,
     });
 
     const newRole = new ReusableServiceLinkedRole(this, 'NewRole', {
-      roleNamePrefix,
-      awsServiceName,
+      roleNamePrefix: 'AWSServiceRoleForAutoScaling',
+      awsServiceName: 'autoscaling.amazonaws.com',
       customSuffix: 'for-lookup',
     });
 
     new cdk.CfnOutput(this, 'ExistingRoleArn', {
       value: existingRole.roleArn,
+    });
+    new cdk.CfnOutput(this, 'ExistingRoleWithoutCacheArn', {
+      value: existingRoleWithoutCache.roleArn,
     });
     new cdk.CfnOutput(this, 'NewRoleArn', {
       value: newRole.roleArn,
@@ -29,6 +35,9 @@ export class CdkLookupCcApiStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'ExistingRoleIsNewResource', {
       value: existingRole.isNewResource.toString(),
+    });
+    new cdk.CfnOutput(this, 'ExistingRoleWithoutCacheIsNewResource', {
+      value: existingRoleWithoutCache.isNewResource.toString(),
     });
     new cdk.CfnOutput(this, 'NewRoleIsNewResource', {
       value: newRole.isNewResource.toString(),
