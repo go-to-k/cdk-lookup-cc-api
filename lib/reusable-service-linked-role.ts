@@ -38,11 +38,35 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
   }
 
   private isCreatedInStack(): boolean {
+    // 以下get-resourceができないのでlist-resourcesを使おうとしたが
+    // StackIdはデプロイ後にしか取れないトークンなので機能しない
+    const listResponse: { [key: string]: any }[] = cdk.ContextProvider.getValue(this, {
+      provider: ContextProvider.CC_API_PROVIDER,
+      props: {
+        typeName: 'AWS::CloudFormation::Stack',
+        propertyMatch: {
+          StackId: cdk.Stack.of(this).stackId, // StackIdはデプロイ後にしか取れないトークンなので機能しない
+        },
+        propertiesToReturn: ['StackId'],
+      } satisfies Omit<CcApiContextQuery, 'account' | 'region'>,
+      dummyValue: [
+        {
+          Properties: {
+            StackId: 'DUMMY_STACK_ID',
+          },
+        },
+      ],
+    }).value;
+
+    if (listResponse.length === 0) {
+      return false;
+    }
+
     // NOTE:
     // CLI 側のバグ(ResourceNotFoundException じゃなくて GeneralServiceException だからキャッチできてない)で、今はできなかった。
     // GeneralServiceException を ignore しちゃうと他のエラーも ignore しかねないので、これを本家に導入は難しい。
-    // [Error at /CdkLookupCcApiStack/ExistingRoleWithoutCache] Encountered CC API error while getting AWS::CloudFormation::Stack resource CdkLookupCcApiStack: AWS::CloudFormation::Stack Handler returned status FAILED: Stack with id CdkLookupCcApiStack does not exist (Service: CloudFormation, Status Code: 400, Request ID: eeb70254-5808-436f-a60f-8016c6e99543) (HandlerErrorCode: GeneralServiceException, RequestToken: c863844e-8eb0-4880-8d45-cd4e2515c703)
-    const response: { [key: string]: any }[] = cdk.ContextProvider.getValue(this, {
+    // [Error at /CdkLookupCcApiStack/ExistingRoleWithoutCache] Encountered CC API error while getting AWS::CloudFormation::Stack resource CdkLookupCcApiStack: AWS::CloudFormation::Stack Handler returned status FAILED: Stack with id CdkLookupCcApiStack does not exist (Service: CloudFormation, Status Code: 400, Request ID: 12345-xxxxx) (HandlerErrorCode: GeneralServiceException, RequestToken: 12345-xxxxx)
+    const getResponse: { [key: string]: any }[] = cdk.ContextProvider.getValue(this, {
       provider: ContextProvider.CC_API_PROVIDER,
       props: {
         typeName: 'AWS::CloudFormation::Stack',
@@ -58,7 +82,7 @@ export class ReusableServiceLinkedRole extends cdk.Resource {
     }).value;
 
     // getValue returns a list of result objects. We are expecting 1 result or Error.
-    const lookupBody = response[0].TemplateBody;
+    const lookupBody = getResponse[0].TemplateBody;
 
     if (lookupBody && lookupBody.Resources) {
       for (const resourceId in lookupBody.Resources) {
